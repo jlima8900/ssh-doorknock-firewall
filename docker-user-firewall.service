@@ -1,0 +1,13 @@
+[Unit]
+Description=Initialize DOCKER-USER firewall DROP rule
+Documentation=https://github.com/YOUR_USERNAME/ssh-ip-whitelist
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/root/docker-user-firewall-init.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
