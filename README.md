@@ -105,6 +105,8 @@ This adds whitelist/remove scripts to `.bashrc` and `.bash_logout`.
 | `auto-remove-whitelist.sh` | Alternative: shell-based removal (via .bash_logout) |
 | `safe-firewall-hardening.sh` | Interactive firewall hardening with rollback |
 | `setup-ssh-whitelist.sh` | One-click shell-based setup |
+| `connect-with-tunnels.sh` | **Client script** - SSH connect with auto port forwards |
+| `ssh-config-example` | **Client config** - SSH config template with tunnels |
 
 ## How the PAM Scripts Work
 
@@ -118,6 +120,76 @@ This adds whitelist/remove scripts to `.bashrc` and `.bash_logout`.
 - Checks if other sessions from your IP exist
 - If last session, removes iptables rules
 - Logs the removal
+
+## Client-Side: Accessing Services Behind Restrictive Firewalls
+
+If your work/corporate network blocks non-standard ports (only allowing 22, 80, 443), use SSH tunnels to access your services.
+
+### Option 1: Connection Script
+
+Use the provided script to connect with auto-tunnels:
+
+```bash
+./connect-with-tunnels.sh
+# Or with custom settings:
+./connect-with-tunnels.sh -h your-server.com -u admin
+```
+
+This creates local port forwards so you can access services at `localhost:PORT`.
+
+### Option 2: SSH Config (Recommended for Daily Use)
+
+Add to `~/.ssh/config` on your **client machine**:
+
+```
+Host keeper-server
+    HostName 149.102.159.192
+    User root
+    LocalForward 8080 localhost:8080
+    LocalForward 8444 localhost:8444
+    LocalForward 8000 localhost:8000
+    LocalForward 3000 localhost:3000
+    ServerAliveInterval 60
+```
+
+Then just run:
+```bash
+ssh keeper-server
+```
+
+Access services at:
+- `https://localhost:8444` - Your HTTPS service
+- `http://localhost:8080` - Your HTTP service
+- `http://localhost:8000` - Backend API
+
+See `ssh-config-example` for a complete configuration with connection multiplexing.
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│              SSH TUNNELING THROUGH RESTRICTIVE FIREWALL             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   YOUR LAPTOP          CORP FIREWALL           YOUR SERVER          │
+│   ══════════           ═════════════           ═══════════          │
+│                                                                     │
+│   Browser ──► localhost:8444 ─┐                                     │
+│                               │                                     │
+│   SSH Client ────────────────►├──► port 22 ──────► sshd             │
+│   (tunnel carrier)            │    (allowed)       │                │
+│                               │                    ▼                │
+│                               │              ┌───────────┐          │
+│                               │              │ Doorknock │          │
+│                               │              │ whitelist │          │
+│                               │              └───────────┘          │
+│                               │                    │                │
+│   localhost:8444 ◄────────────┴────────────────────┴──► :8444       │
+│   (your browser)              SSH tunnel              (service)     │
+│                                                                     │
+│   Result: Access blocked ports through SSH tunnel                   │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Security Notes
 

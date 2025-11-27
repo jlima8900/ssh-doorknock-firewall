@@ -1,0 +1,42 @@
+# SSH Config Example for Doorknock with Auto-Tunnels
+# Add this to ~/.ssh/config on your CLIENT machine (laptop/workstation)
+#
+# Usage: ssh keeper-server
+# This will:
+#   1. Connect via SSH (triggering doorknock IP whitelist)
+#   2. Create local port forwards for all your services
+#   3. Keep tunnels alive with ServerAliveInterval
+
+Host keeper-server
+    HostName 149.102.159.192
+    User root
+    Port 22
+
+    # Auto-create tunnels on connect
+    LocalForward 8080 localhost:8080
+    LocalForward 8444 localhost:8444
+    LocalForward 8000 localhost:8000
+    LocalForward 3000 localhost:3000
+    LocalForward 6080 localhost:6080
+
+    # Keep connection alive (prevents timeout)
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+    # Compression for better performance
+    Compression yes
+
+    # Reuse connections (faster subsequent connections)
+    ControlMaster auto
+    ControlPath ~/.ssh/sockets/%r@%h-%p
+    ControlPersist 600
+
+# After connecting, access services at:
+#   https://localhost:8444  - MultiplexSSH (HTTPS)
+#   http://localhost:8080   - MultiplexSSH (HTTP)
+#   http://localhost:8000   - Backend API
+#   http://localhost:3000   - Frontend Dev Server
+#   http://localhost:6080   - VNC/noVNC
+
+# Note: Create the sockets directory first:
+#   mkdir -p ~/.ssh/sockets
