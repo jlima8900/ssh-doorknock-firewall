@@ -39,9 +39,30 @@ Dynamic IP whitelisting via SSH authentication - like a VPN without the VPN.
 
 1. **Only SSH (port 22) is open** to the world
 2. **SSH login triggers PAM** which adds your IP to iptables
-3. **ALL ports become accessible** to your IP only
+3. **ALL ports become accessible** to your IP only (including Docker containers!)
 4. **SSH logout removes access** - back to blocked
 5. **No static whitelist** - purely dynamic via SSH "doorknock"
+
+## How Docker Container Access Works
+
+When you SSH in, the whitelist script configures two firewall chains:
+
+1. **INPUT chain** - Allows all traffic from your IP to the host
+2. **DOCKER-USER chain** - Allows your IP to access Docker containers
+
+The `DOCKER-USER` chain setup:
+```
+1. RETURN  ctstate ESTABLISHED,RELATED  (allows return traffic - global rule)
+2. RETURN  <your-ip>                     (allows new connections from your IP)
+3. DROP    all                           (blocks everyone else)
+```
+
+**Why the ESTABLISHED,RELATED rule?**
+Docker container traffic flows through the FORWARD chain, not INPUT. Without this rule, the TCP handshake fails because return packets (SYN-ACK) from containers get dropped. This global rule stays permanently and benefits all whitelisted IPs.
+
+**On logout:**
+- Your IP-specific rules are removed
+- The ESTABLISHED,RELATED rule stays (it's shared by all users)
 
 ## Requirements
 

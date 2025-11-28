@@ -54,10 +54,12 @@ else
 fi
 
 # Also remove DOCKER-USER rules for this IP
+# NOTE: Do NOT remove the ESTABLISHED,RELATED rule - it's a global rule needed for all connections
 echo "Removing Docker access for IP: $CLIENT_IP"
 DOCKER_REMOVED=0
-while iptables -L DOCKER-USER -n --line-numbers 2>/dev/null | grep -E "RETURN.*$CLIENT_IP" > /dev/null 2>&1; do
-    LINE_NUM=$(iptables -L DOCKER-USER -n --line-numbers | grep -E "RETURN.*$CLIENT_IP" | head -1 | awk '{print $1}')
+# Only match rules with this specific IP, not the ESTABLISHED,RELATED rule
+while iptables -L DOCKER-USER -n --line-numbers 2>/dev/null | grep -E "RETURN.*all.*--.*$CLIENT_IP[[:space:]]" > /dev/null 2>&1; do
+    LINE_NUM=$(iptables -L DOCKER-USER -n --line-numbers | grep -E "RETURN.*all.*--.*$CLIENT_IP[[:space:]]" | head -1 | awk '{print $1}')
 
     if [ ! -z "$LINE_NUM" ]; then
         iptables -D DOCKER-USER $LINE_NUM
